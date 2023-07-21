@@ -29,7 +29,7 @@ CONF_PATH = "zoom-recording-downloader.conf"
 with open(CONF_PATH, encoding="utf-8-sig") as json_file:
     CONF = json.loads(json_file.read())
 
-ACCOUNT_ID = CONF["OAuth"]["user_id"]
+ACCOUNT_ID = CONF["OAuth"]["account_id"]
 CLIENT_ID = CONF["OAuth"]["client_id"]
 CLIENT_SECRET = CONF["OAuth"]["client_secret"]
 USER_EMAIL = CONF["user_email"]
