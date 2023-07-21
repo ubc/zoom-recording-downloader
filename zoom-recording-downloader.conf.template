@@ -3,5 +3,6 @@
 		"account_id": "<ACCOUNT_ID>",
 		"client_id": "<CLIENT_ID>",
 		"client_secret": "<CLIENT_SECRET>"
-	}
+	},
+	"user_email": "<FIRST.LAST@email.com>"
 }

@@ -29,9 +29,10 @@ CONF_PATH = "zoom-recording-downloader.conf"
 with open(CONF_PATH, encoding="utf-8-sig") as json_file:
     CONF = json.loads(json_file.read())
 
-ACCOUNT_ID = CONF["OAuth"]["account_id"]
+ACCOUNT_ID = CONF["OAuth"]["user_id"]
 CLIENT_ID = CONF["OAuth"]["client_id"]
 CLIENT_SECRET = CONF["OAuth"]["client_secret"]
+USER_EMAIL = CONF["user_email"]
 
 APP_VERSION = "3.0 (OAuth)"
 
@@ -299,71 +300,71 @@ def main():
 
     load_completed_meeting_ids()
 
-    print(f"{Color.BOLD}Getting user accounts...{Color.END}")
-    users = get_users()
+    # print(f"{Color.BOLD}Getting user accounts...{Color.END}")
+    # users = get_users()
 
-    for email, user_id, first_name, last_name in users:
-        userInfo = (
-            f"{first_name} {last_name} - {email}" if first_name and last_name else f"{email}"
-        )
-        print(f"\n{Color.BOLD}Getting recording list for {userInfo}{Color.END}")
+#    for email, user_id, first_name, last_name in users:
+#    userInfo = (
+#        f"{first_name} {last_name} - {email}" if first_name and last_name else f"{email}"
+#    )
+    print(f"\n{Color.BOLD}Getting recording list for {USER_EMAIL}{Color.END}")
 
-        recordings = list_recordings(user_id)
-        total_count = len(recordings)
-        print(f"==> Found {total_count} recordings")
+    recordings = list_recordings(USER_EMAIL)
+    total_count = len(recordings)
+    print(f"==> Found {total_count} recordings")
 
-        for index, recording in enumerate(recordings):
-            success = False
-            meeting_id = recording["uuid"]
-            if meeting_id in COMPLETED_MEETING_IDS:
-                print(f"==> Skipping already downloaded meeting: {meeting_id}")
+    for index, recording in enumerate(recordings):
+        success = False
+        meeting_id = recording["uuid"]
+        if meeting_id in COMPLETED_MEETING_IDS:
+            print(f"==> Skipping already downloaded meeting: {meeting_id}")
 
-                continue
+            continue
 
-            try:
-                downloads = get_downloads(recording)
-            except Exception:
-                print(
-                    f"{Color.RED}### Recording files missing for call with id {Color.END}"
-                    f"'{recording['id']}'\n"
+        try:
+            downloads = get_downloads(recording)
+        except Exception:
+            print(
+                f"{Color.RED}### Recording files missing for call with id {Color.END}"
+                f"'{recording['id']}'\n"
+            )
+
+            continue
+
+        for file_type, file_extension, download_url, recording_type, recording_id in downloads:
+            if recording_type != 'incomplete':
+                filename, folder_name = (
+                    format_filename({
+                        "file_type": file_type,
+                        "recording": recording,
+                        "file_extension": file_extension,
+                        "recording_type": recording_type,
+                        "recording_id": recording_id
+                    })
                 )
 
-                continue
+                # truncate URL to 64 characters
+                truncated_url = download_url[0:64] + "..."
+                print(
+                    f"==> Downloading ({index + 1} of {total_count}) as {recording_type}: "
+                    f"{recording_id}: {truncated_url}"
+                )
+                success |= download_recording(download_url, USER_EMAIL, filename, folder_name)
 
-            for file_type, file_extension, download_url, recording_type, recording_id in downloads:
-                if recording_type != 'incomplete':
-                    filename, folder_name = (
-                        format_filename({
-                            "file_type": file_type,
-                            "recording": recording,
-                            "file_extension": file_extension,
-                            "recording_type": recording_type,
-                            "recording_id": recording_id
-                        })
-                    )
+            else:
+                print(
+                    f"{Color.RED}### Incomplete Recording ({index + 1} of {total_count}) for "
+                    f"recording with id {Color.END}'{recording_id}'"
+                )
+                success = False
 
-                    # truncate URL to 64 characters
-                    truncated_url = download_url[0:64] + "..."
-                    print(
-                        f"==> Downloading ({index + 1} of {total_count}) as {recording_type}: "
-                        f"{recording_id}: {truncated_url}"
-                    )
-                    success |= download_recording(download_url, email, filename, folder_name)
-
-                else:
-                    print(
-                        f"{Color.RED}### Incomplete Recording ({index + 1} of {total_count}) for "
-                        f"recording with id {Color.END}'{recording_id}'"
-                    )
-                    success = False
-
-            if success:
-                # if successful, write the ID of this recording to the completed file
-                with open(COMPLETED_MEETING_IDS_LOG, 'a') as log:
-                    COMPLETED_MEETING_IDS.add(meeting_id)
-                    log.write(meeting_id)
-                    log.write('\n')
-                    log.flush()
+        if success:
+            # if successful, write the ID of this recording to the completed file
+            with open(COMPLETED_MEETING_IDS_LOG, 'a') as log:
+                COMPLETED_MEETING_IDS.add(meeting_id)
+                log.write(meeting_id)
+                log.write('\n')
+                log.flush()
 
     print(f"\n{Color.BOLD}{Color.GREEN}*** All done! ***{Color.END}")
     save_location = os.path.abspath(DOWNLOAD_DIRECTORY)
