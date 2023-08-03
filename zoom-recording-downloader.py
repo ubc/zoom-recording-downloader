@@ -134,13 +134,13 @@ def format_filename(params):
     recording_type = params["recording_type"]
 
     invalid_chars_pattern = r'[<>:"/\\|?*\x00-\x1F]'
-    topic = regex.sub(invalid_chars_pattern, '', recording["topic"])
+    topic = regex.sub(invalid_chars_pattern, '', recording["topic"])[:40]
     rec_type = recording_type.replace("_", " ").title()
-    meeting_time = parser.parse(recording["start_time"]).strftime("%Y.%m.%d - %I.%M %p UTC")
+    meeting_time = parser.parse(recording["start_time"]).strftime("%Y.%m.%d")
 
     return (
-        f"{meeting_time} - {topic} - {rec_type} - {recording_id}.{file_extension.lower()}",
-        f"{topic} - {meeting_time}"
+        f"{meeting_time} - {topic} - {rec_type}.{file_extension.lower()}",
+        f"{meeting_time} - {topic}"
     )
 
 
